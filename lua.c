@@ -654,6 +654,38 @@ static inline void wrap_context(lua_State *L, char const *field, lua_CFunction f
 	lua_setfield(L, -2, field);
 }
 
+static int wrap_context_closure_table(lua_State *L)
+{
+/*
+	FIXME
+	hexchat_context *context = *(hexchat_context **)luaL_checkudata(L, 1, "context");
+	lua_pushvalue(L, lua_upvalueindex(1));
+	lua_replace(L, 1);
+	hexchat_context *old = hexchat_get_context(ph);
+	hexchat_set_context(ph, context);
+	hexchat_printf(ph, "Closure called");
+	lua_call(L, lua_gettop(L) - 1, LUA_MULTRET);
+	hexchat_set_context(ph, old);
+	return lua_gettop(L);
+*/
+}
+
+static inline void wrap_context_table(lua_State *L, char const *field, luaL_Reg table[])
+{
+	lua_newtable(L);
+	lua_newtable(L);
+
+	for (size_t i = 0; table[i].name; ++i)
+	{
+		lua_pushcfunction(L, table[i].func);
+		lua_pushcclosure(L, wrap_context_closure_table, 1);
+		lua_setfield(L, -2, table[i].name);
+	}
+
+	lua_setmetatable(L, -2);
+	lua_setfield(L, -2, field);
+}
+
 static int api_hexchat_context_meta_eq(lua_State *L)
 {
 	hexchat_context *this = *(hexchat_context **)luaL_checkudata(L, 1, "context");
@@ -1059,6 +1091,8 @@ static int luaopen_hexchat(lua_State *L)
 	wrap_context(L, "nickcmp", api_hexchat_nickcmp);
 	wrap_context(L, "get_info", api_hexchat_get_info);
 	wrap_context(L, "iterate", api_hexchat_iterate);
+	wrap_context_table(L, "props", api_hexchat_props_meta);
+	wrap_context_table(L, "prefs", api_hexchat_prefs_meta);
 	lua_setfield(L, -2, "__index");
 	lua_pushcfunction(L, api_hexchat_context_meta_eq);
 	lua_setfield(L, -2, "__eq");
